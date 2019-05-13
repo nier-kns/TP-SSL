@@ -27,7 +27,6 @@ void siguiente(nodoPila **, int, char);
 int cambiarEstado(int, char);
 void recorrerCadena(char*);
 int esDigito(char);
-int esOperacion(char);
 
 int main(void)
 {
@@ -38,7 +37,7 @@ int main(void)
 
 void comenzar(void)
 {
-	char cadenaLeido[MAX_LENGTH];
+	char cadenaLeido[MAX_LENGTH] = {0};
 	
 	printf("Ingrese cadena: ");
 	gets(cadenaLeido);
@@ -65,7 +64,7 @@ void recorrerCadena(char* cadena)
 		mostrarPila(pila);
 		desapilar(&pila, &cima);
 		estado = cambiarEstado(cima, *chp);
-		siguiente(&pila, cima, *chp);
+		siguiente(&pila, cima, *chp);		
 		printf("'%c' ", *chp);
 
 		if (estado == 1)
@@ -73,6 +72,7 @@ void recorrerCadena(char* cadena)
 			estado = 0;
 			chp++;
 		}
+
 	}while (estado != 2 && pila->accion != VACIO);
 	
 	if (estado == 2 || pila->accion != VACIO)
@@ -115,10 +115,12 @@ void siguiente(nodoPila **pila, int codigo, char ch)
 		case FAC:
 			if (ch == '(')
 			{
-				apilar(pila, EXP_1);
 				apilar(pila, ')');
+				apilar(pila, EXP_1);
 				
 			}
+			else if (ch == '\0')
+				;
 			else
 				apilar(pila, NUM);
 			break;
@@ -136,6 +138,8 @@ int cambiarEstado(int codigo, char ch)
 		case VACIO:
 			if(ch == '*' || ch == '+')
 				estado = 2;
+			else if (ch == '(')
+				estado = 1;
 			else if (!esDigito(ch))
 				estado = 2;
 			break;
@@ -162,16 +166,22 @@ int cambiarEstado(int codigo, char ch)
 		case FAC:
 			if(ch == '*' || ch =='+')
 				estado = 2;
+			else if (ch == '(')
+				estado = 1;
+			else if (!esDigito(ch))
+				estado = 2;
 			break;		
 		case NUM:
 			if(esDigito(ch))
 				estado = 1;
 			break;
+		case '(':
+			estado = 1;
 		case ')':
 			estado = 1;
 			break;
 		default:
-			;
+			estado = 2;
 	}
 	
 	return estado;
@@ -249,12 +259,3 @@ int esDigito(char ch)
 		return 0;
 }
 
-int esOperacion(char ch)
-{
-	if(ch=='+')
-		return 1;
-	else if (ch=='*')
-		return 2;
-	else
-		return 0;
-}
