@@ -24,9 +24,10 @@ void mostrarPila(nodoPila*);
 char* codigos(int);
 void comenzar(void);
 void siguiente(nodoPila **, int, char);
-int cambiarEstado(int, char);
+int cambiarEstado(int, char*);
 void recorrerCadena(char*);
 int esDigito(char);
+int esVacio(char);
 
 int main(void)
 {
@@ -41,7 +42,7 @@ void comenzar(void)
 	
 	printf("Ingrese cadena: ");
 	gets(cadenaLeido);
-	
+
 	while(strcmp(cadenaLeido, "exit"))
 	{
 		recorrerCadena(cadenaLeido);
@@ -63,7 +64,7 @@ void recorrerCadena(char* cadena)
 	{
 		mostrarPila(pila);
 		desapilar(&pila, &cima);
-		estado = cambiarEstado(cima, *chp);
+		estado = cambiarEstado(cima, chp);
 		siguiente(&pila, cima, *chp);		
 		printf("'%c' ", *chp);
 
@@ -117,68 +118,82 @@ void siguiente(nodoPila **pila, int codigo, char ch)
 			{
 				apilar(pila, ')');
 				apilar(pila, EXP_1);
-				
+				apilar(pila, '(');
 			}
 			else if (ch == '\0')
 				;
 			else
 				apilar(pila, NUM);
 			break;
-		default:
-			;
+		case '(':
+			if (!esDigito(ch) && ch != '(')
+				apilar(pila, codigo);
+			break;
 	}
 }
 
-int cambiarEstado(int codigo, char ch)
+int cambiarEstado(int codigo, char* ch)
 {
 	int estado = 0;
-	
+	char* aux = ch;
+
 	switch(codigo)
 	{
 		case VACIO:
-			if(ch == '*' || ch == '+')
+			if(*ch == '*' || *ch == '+')
 				estado = 2;
-			else if (ch == '(')
+			else if (*ch == '(')
 				estado = 1;
-			else if (!esDigito(ch))
+			else if (!esDigito(*ch))
 				estado = 2;
 			break;
 		case EXP_1:
-			if(ch == '*' || ch =='+')
+			if(*ch == '*' || *ch =='+')
+				estado = 2;
+			else if(*ch == '(')
 				estado = 2;
 			break;
 		case EXP_2:
-			if(ch == '+')
+			if(*ch == '+')
 				estado = 1;
-			else if (esDigito(ch))
+			else if (esDigito(*ch))
 				estado = 2;
 			break;
 		case TER_1:
-			if(ch == '*' || ch =='+')
+			if(*ch == '*' || *ch =='+')
 				estado = 2;
 			break;
 		case TER_2:
-			if(ch == '*')
+			if(*ch == '*')
 				estado = 1;
-			else if (esDigito(ch))
+			else if (esDigito(*ch))
+				estado = 2;
+			else if (*ch == '(')
 				estado = 2;
 			break;
 		case FAC:
-			if(ch == '*' || ch =='+')
+			if(*ch == '*' || *ch =='+')
 				estado = 2;
-			else if (ch == '(')
+			else if (*ch == '(')
 				estado = 1;
-			else if (!esDigito(ch))
+			else if (!esDigito(*ch))
 				estado = 2;
 			break;		
 		case NUM:
-			if(esDigito(ch))
+			if(esDigito(*ch))
 				estado = 1;
 			break;
 		case '(':
-			estado = 1;
+			if (esVacio(*(++aux)))
+				estado = 2;
+			else if (!esDigito(*ch))
+				estado = 1;
+			break;
 		case ')':
-			estado = 1;
+			if(*ch != ')')
+				estado = 2;
+			else
+				estado = 1;
 			break;
 		default:
 			estado = 2;
@@ -255,6 +270,24 @@ int esDigito(char ch)
 {
 	if(ch >= '0' && ch <= '9')
 		return 1;
+	else
+		return 0;
+}
+
+int esVacio(char ch)
+{
+	if (!esDigito(ch))
+	{
+		if (ch != '(' && ch != ')')
+			{
+				if (ch != '+' && ch != '*')
+					return 1;
+				else
+					return 0;
+			}
+		else
+			return 0;
+	}
 	else
 		return 0;
 }
