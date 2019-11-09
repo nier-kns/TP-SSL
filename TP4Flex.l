@@ -35,7 +35,7 @@ PRCLSVAR  auto|register|static|extern
 PRBREAK break
 PRCONTINUE  continue   
 PRGOTO  goto
-PRCONTINUE  continue
+PRRETURN  return
 PROP      sizeof
 ID        [_a-zA-Z][_a-zA-Z0-9]*
 LITCADENA \"([^\"]|\\\")*\"
@@ -54,7 +54,6 @@ GREATEQ   ">="
 LESSEQ    "<="
 OPINC     "++"|"--" 
 IGNORAR   [ \t\n]+
-PUNTOCOMA ;
 
 %%
 ")"         {return ')';}
