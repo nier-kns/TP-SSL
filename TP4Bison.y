@@ -46,7 +46,7 @@ input: /*vacio*/
 line: '\n'
       | codigo '\n'
 ;
-codigo: declaracion | expresion
+codigo: declaracion | expresion 
 ;
 
 expresion: expAsignacion
