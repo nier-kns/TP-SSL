@@ -50,6 +50,20 @@ PUNTOCOMA ;
 ";"         {return ';';}
 "["         {return '[';}
 "]"         {return ']';}
+"?"         {return '?';}
+"="         {return '=';}
+":"         {return ':';}
+">"         {return '>';}
+"<"         {return '<';}
+"+"         {return '+';}
+"-"         {return '-';}
+"*"         {return '*';}
+"/"         {return '/';}
+"%"         {return '%';}
+"&"         {return '&';}
+"!"         {return '!';}
+":"         {return ':';}
+","         {return ',';}
 {DATATYPE}  {yylval.s.type = dataTypeToInt(yytext); return DATATYPE;}
 {PROP}      {printf("rp found\n");return PROP;}
 {ID}        {yylval.s.isReserved = 0; return ID;}
