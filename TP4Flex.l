@@ -20,18 +20,15 @@ CMTCOMP   "/*"(.|\n)*"*/"
 PRSTIPO   typedef|enum|struct|union|const
 SIGN      signed|unsigned
 DATATYPE  char|double|float|int|long|short|void
-//PRSSELEC  case|default|else|if|switch
 PRIF      if
 PRELSE    else
 PRCASE    case
 PRDEFAULT   default
 PRSWITCH    switch 
-//PRITER    do|for|while
 PRDO do
 PRFOR for
 PRWHILE while
 PRCLSVAR  auto|register|static|extern
-//PRSALTO   break|continue|goto|return
 PRBREAK break
 PRCONTINUE  continue   
 PRGOTO  goto
@@ -73,11 +70,10 @@ IGNORAR   [ \t\n]+
 "%"         {return '%';}
 "&"         {return '&';}
 "!"         {return '!';}
-":"         {return ':';}
 ","         {return ',';}
-{DATATYPE}  {yylval.s.type = dataTypeToInt(yytext); return DATATYPE;}
+{DATATYPE}  {return DATATYPE;}
 {PROP}      {printf("rp found\n");return PROP;}
-{ID}        {yylval.s.isReserved = 0; return ID;}
+{ID}        {return ID;}
 {CTEHEX}    {yylval.n.type = INT; return CTEHEX;}
 {CTECAR}    {yylval.n.type = CH; return CTECAR;}
 {CTEDEC}    {yylval.n.type = INT; return CTEDEC;}
