@@ -55,6 +55,8 @@ IGNORAR   [ \t\n]+
 %%
 ")"         {return ')';}
 "("         {return '(';}
+"{"         {return '{';}
+"}"         {return '}';}
 ";"         {return ';';}
 "["         {return '[';}
 "]"         {return ']';}
@@ -71,9 +73,16 @@ IGNORAR   [ \t\n]+
 "&"         {return '&';}
 "!"         {return '!';}
 ","         {return ',';}
-{DATATYPE}  {return DATATYPE;}
+{DATATYPE}  {yylval.s.type = dataTypeToInt(yytext); return DATATYPE;}
+{PRIF}      {return PRIF;}
+{PRELSE}    {return PRELSE;}
+{PRSWITCH}  {return PRSWITCH;}
+{PRWHILE}   {return PRWHILE;}
+{PRDO}      {return PRDO;}
+{PRFOR}     {return PRFOR;}
+{PRRETURN}  {return PRRETURN;}
 {PROP}      {printf("rp found\n");return PROP;}
-{ID}        {return ID;}
+{ID}        {yylval.s.isReserved = 0; return ID;}
 {CTEHEX}    {yylval.n.type = INT; return CTEHEX;}
 {CTECAR}    {yylval.n.type = CH; return CTECAR;}
 {CTEDEC}    {yylval.n.type = INT; return CTEDEC;}

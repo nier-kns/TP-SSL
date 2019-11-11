@@ -8,8 +8,25 @@
     #define FLT 2
     #define CH 3
     #define STR 4
+    #define YYERROR_VERBOSE
+    extern FILE* yyin;
+    typedef struct _Registro
+    {
+        char* palabra;
+        int cant, len;
+    }Registro;
 
+    typedef struct NodoLista
+    {
+        Registro info;
+        struct NodoLista* sig;
+    }NodoLista;
+
+    void agregarALista(NodoLista**, char*);
+    NodoLista* buscarNodo(NodoLista*, char*);
     void yyerror(char*);
+
+    int errTipo = 0, esLvalue = 0, tipo;
 %}
 
 %union
@@ -34,8 +51,11 @@
 %token <n> ASIGNOP LOGICOR LOGICAND LOGICEQ LOGICNOTEQ GREATEQ LESSEQ OPINC LITCADENA PROP
 //----------Terminales de expresion
 //No terminales de asignacion
-%type <s> listaDeclaracion var varSimple varComp inicial puntero
+%type <s> listaDeclaracion var varSimple varComp inicial puntero constantes
 //-----------No terminales de asignacion
+//Terminales de sentencias-----------
+%token <s> PRIF PRELSE PRSWITCH PRWHILE PRRETURN PRDO PRFOR
+//-----------Terminales de sentencias
 %start input
 
 %%
@@ -45,14 +65,20 @@ input: /*vacio*/
 ;
 line: '\n'
       | codigo '\n'
+      | line '\n'
 ;
-codigo: declaracion | expresion 
+
+codigo: declaracion
+       | sentencia
+       | prototipo
+       | definicion
 ;
 
 expresion: expAsignacion
+          | /*vacio*/
 ;
 expAsignacion: expCondicional
-            | expUnaria operAsignacion expAsignacion
+            | expUnaria operAsignacion expAsignacion {if(!esLvalue) printf("Error, la asignacion necesita un lvalue\n");}
 ;
 operAsignacion: ASIGNOP
                | '='
@@ -91,6 +117,7 @@ expUnaria: expPostfijo
           | operUnario expUnaria
           | PROP '(' DATATYPE ')'
           | PROP '(' ID ')'
+          | /*vacio*/
 ;
 operUnario: '&' | '*' | '-' | '!'
 ;
@@ -102,38 +129,132 @@ listaArgumentos: expAsignacion
                 | listaArgumentos ',' expAsignacion
                 | /*vacio*/
 ;
-expPrimaria: ID
+expPrimaria: ID {esLvalue = 1;}
             | LITCADENA
             | constantes
             | '(' expresion ')'
 ;
-constantes: CTECAR
-            | CTEDEC
-            | CTEOCT
-            | CTEHEX
-            | CTEREAL
+constantes: CTECAR {$<s.type>$ = $<n.type>1;}
+            | CTEDEC {$<s.type>$ = $<n.type>1;}
+            | CTEOCT {$<s.type>$ = $<n.type>1;}
+            | CTEHEX {$<s.type>$ = $<n.type>1;}
+            | CTEREAL {$<s.type>$ = $<n.type>1;}
 ;
 
-declaracion: DATATYPE puntero listaDeclaracion ';'
+declaracion: DATATYPE puntero listaDeclaracion ';' {if($<s.type>1 != $<s.type>3) {printf("error de tipo\n"); errTipo++;}}
+            | error {printf("Error en declaracion\n");}
 ;
 puntero: '*' puntero
         | /*vacio*/
 ;
-listaDeclaracion:   var
-                  | listaDeclaracion ',' var
+listaDeclaracion:   var 
+                  | listaDeclaracion ',' var {$<s.type>$ = $<s.type>3; if(tipo !=  $<s.type>3) printf("error de tipo\n");} 
 ;
-var: varSimple
+var: varSimple {$<s.type>$ =  $<s.type>1;  tipo = $<s.type>1}
     | varComp
 ;
-varSimple:  ID inicial
+varSimple:  ID inicial {$<s.type>$ =  $<s.type>2;}
 ;
 varComp: ID '[' expresion ']'
         | varComp '[' expresion ']'
 ;
-inicial:  '=' expCondicional
+inicial:  '=' constantes {$<s.type>$ =  $<s.type>2;}
         | /*vacio*/
 ;
+
+sentencia: sentCompuesta
+          | sentExpresion 
+          | sentSeleccion
+          | sentIteracion
+          | sentSalto
+;
+
+sentCompuesta: '{' listaDeclaraciones listaSentencias '}'
+;
+listaDeclaraciones: declaracion
+                   | listaDeclaraciones declaracion
+                   | /*vacio*/
+;
+
+listaSentencias: sentencia
+                | listaSentencias sentencia
+                | /*vacio*/
+;
+
+sentExpresion: expresion ';'
+              | /*vacio*/
+;
+
+sentSeleccion: PRIF '(' expresion ')' sentencia
+              | PRIF '(' expresion ')' sentencia PRELSE sentencia
+              | PRSWITCH '(' expresion ')' sentencia
+;
+sentIteracion: PRWHILE '(' expresion ')' sentencia
+              | PRDO sentencia PRWHILE '(' expresion ')' ';'
+              | PRFOR '(' expresion ';' expresion ';' expresion ')' sentencia
+;
+
+sentSalto: PRRETURN expresion
+;
+
+prototipo: funcion ';'
+;
+funcion: DATATYPE puntero ID '(' parametros ')'
+;
+parametros: DATATYPE
+           | parametros ',' DATATYPE
+;
+definicion: funcion '{' input '}'
+           | funcion '{' codigo '}'
+;
+
 %%
+
+
+void agregarALista(NodoLista** lista, char* p)
+{
+    NodoLista *nodo, *aux1 = *lista, *aux2 = NULL;
+
+    nodo = buscarNodo(*lista, p);
+
+    if(nodo == NULL)
+    {
+        nodo = (NodoLista*) malloc(sizeof(NodoLista)+ strlen(p) + 1);
+        nodo->info.palabra = (char*) malloc(strlen(p) + 1);
+        strcpy(nodo->info.palabra, p);
+        nodo->info.cant = 1;
+        nodo->info.len = strlen(p);
+        
+        while(aux1 != NULL && strcmp(aux1->info.palabra, p) < 0)
+        {
+            aux2 = aux1;
+            aux1 = aux1->sig;
+        }
+        if(aux1 == *lista)
+            *lista = nodo;
+        else
+            aux2->sig = nodo;
+
+        nodo->sig = aux1;
+    }
+    else
+        nodo->info.cant++;
+}
+
+
+NodoLista* buscarNodo(NodoLista* lista, char* p)
+{
+    NodoLista* aux = lista;
+
+    while(aux != NULL)
+    {
+        if(strcmp(aux->info.palabra, p) == 0)
+            return aux;
+        aux = aux->sig;
+    }
+
+    return NULL;
+}
 
 void yyerror(char* err)
 {
@@ -142,5 +263,6 @@ void yyerror(char* err)
 
 main()
 {
+    yyin = fopen("tpi.c", "r+");
     yyparse();
 }
