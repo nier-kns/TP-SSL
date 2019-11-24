@@ -26,7 +26,7 @@
     NodoLista* buscarNodo(NodoLista*, char*);
     void yyerror(char*);
 
-    int errTipo = 0, esLvalue = 0, tipo;
+    int err = 0, esLvalue = 0, tipo;
 %}
 
 %union
@@ -68,12 +68,16 @@ line: '\n'
       | line '\n'
 ;
 
-codigo: declaracion
-       | sentencia
-       | prototipo
-       | definicion
+codigo: definicion
+       | declaracion
 ;
 
+definicion: DATATYPE puntero ID '(' parametros ')' sentencia
+;
+parametros: DATATYPE ID
+           | parametros ',' DATATYPE ID
+           | /*vacio*/
+;
 expresion: expAsignacion
           | /*vacio*/
 ;
@@ -126,8 +130,13 @@ expPostfijo: expPrimaria
             | expPostfijo '(' listaArgumentos ')'
 ;
 listaArgumentos: expAsignacion
+                | listaPrimaria
                 | listaArgumentos ',' expAsignacion
                 | /*vacio*/
+;
+listaPrimaria: expPrimaria
+              | listaPrimaria expPrimaria
+              | /*vacio*/
 ;
 expPrimaria: ID {esLvalue = 1;}
             | LITCADENA
@@ -141,24 +150,30 @@ constantes: CTECAR {$<s.type>$ = $<n.type>1;}
             | CTEREAL {$<s.type>$ = $<n.type>1;}
 ;
 
-declaracion: DATATYPE puntero listaDeclaracion ';' {if($<s.type>1 != $<s.type>3) {printf("error de tipo\n"); errTipo++;}}
-            | error {printf("Error en declaracion\n");}
+declaracion: prototipo
+             | DATATYPE {tipo = $<s.type>1} puntero listaDeclaracion ';' {tipo = -1;}
+;
+prototipo: DATATYPE puntero ID '(' listaTipos ')' ';'
 ;
 puntero: '*' puntero
         | /*vacio*/
 ;
 listaDeclaracion:   var 
-                  | listaDeclaracion ',' var {$<s.type>$ = $<s.type>3; if(tipo !=  $<s.type>3) printf("error de tipo\n");} 
+                  | listaDeclaracion ',' var
 ;
-var: varSimple {$<s.type>$ =  $<s.type>1;  tipo = $<s.type>1}
+listaTipos:  DATATYPE
+           | listaTipos ',' DATATYPE
+           | /*vacio*/
+;
+var: varSimple
     | varComp
 ;
-varSimple:  ID inicial {$<s.type>$ =  $<s.type>2;}
+varSimple:  ID inicial
 ;
 varComp: ID '[' expresion ']'
         | varComp '[' expresion ']'
 ;
-inicial:  '=' constantes {$<s.type>$ =  $<s.type>2;}
+inicial:  '=' constantes {if(tipo != $<s.type>2) {err = 1; printf("Tipo del constante no corresponde al tipo declarado\n");}}
         | /*vacio*/
 ;
 
@@ -194,20 +209,8 @@ sentIteracion: PRWHILE '(' expresion ')' sentencia
               | PRFOR '(' expresion ';' expresion ';' expresion ')' sentencia
 ;
 
-sentSalto: PRRETURN expresion
+sentSalto: PRRETURN sentExpresion
 ;
-
-prototipo: funcion ';'
-;
-funcion: DATATYPE puntero ID '(' parametros ')'
-;
-parametros: DATATYPE
-           | parametros ',' DATATYPE
-;
-definicion: funcion '{' input '}'
-           | funcion '{' codigo '}'
-;
-
 %%
 
 
@@ -263,6 +266,8 @@ void yyerror(char* err)
 
 main()
 {
-    yyin = fopen("tpi.c", "r+");
+    //yyin = fopen("tpi.c", "r+");
     yyparse();
+    if(err != 0)
+        printf("Error\n");
 }
