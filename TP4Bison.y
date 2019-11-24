@@ -2,6 +2,7 @@
     #include <math.h>
     #include <stdio.h>
     #include <ctype.h>
+    #include <string.h>
     #include <stdlib.h>
     #define VOID 0
     #define INT 1
@@ -9,7 +10,9 @@
     #define CH 3
     #define STR 4
     #define YYERROR_VERBOSE
+    #define YYDEBUG 1
     extern FILE* yyin;
+
     typedef struct _Registro
     {
         char* palabra;
@@ -26,7 +29,9 @@
     NodoLista* buscarNodo(NodoLista*, char*);
     void yyerror(char*);
 
+    NodoLista *listaVar = NULL, *listaPrototipos = NULL;
     int err = 0, esLvalue = 0, tipo;
+
 %}
 
 %union
@@ -42,7 +47,13 @@
         char isReserved;
         int type;
     }s;
-} 
+    struct
+    {
+        char string[50];
+        char isReserved;
+        int types[50];
+    }f;
+}
 //Terminales de asignacion-----------
 %token <n> CTEDEC CTEOCT CTEHEX CTEREAL CTECAR
 %token <s> DATATYPE ID
@@ -51,32 +62,22 @@
 %token <n> ASIGNOP LOGICOR LOGICAND LOGICEQ LOGICNOTEQ GREATEQ LESSEQ OPINC LITCADENA PROP
 //----------Terminales de expresion
 //No terminales de asignacion
-%type <s> listaDeclaracion var varSimple varComp inicial puntero constantes
+%type <s> listaDeclaracion var varSimple varComp inicial puntero constantes listaTipos
 //-----------No terminales de asignacion
 //Terminales de sentencias-----------
 %token <s> PRIF PRELSE PRSWITCH PRWHILE PRRETURN PRDO PRFOR
 //-----------Terminales de sentencias
-%start input
+
+%start program
 
 %%
-
-input: /*vacio*/
-      | input line
+program: codigo
+        | program codigo
+        | /*vacio*/
 ;
-line: '\n'
-      | codigo '\n'
-      | line '\n'
-;
-
-codigo: definicion
+codigo: prototipo
        | declaracion
-;
-
-definicion: DATATYPE puntero ID '(' parametros ')' sentencia
-;
-parametros: DATATYPE ID
-           | parametros ',' DATATYPE ID
-           | /*vacio*/
+       | error
 ;
 expresion: expAsignacion
           | /*vacio*/
@@ -149,11 +150,7 @@ constantes: CTECAR {$<s.type>$ = $<n.type>1;}
             | CTEHEX {$<s.type>$ = $<n.type>1;}
             | CTEREAL {$<s.type>$ = $<n.type>1;}
 ;
-
-declaracion: prototipo
-             | DATATYPE {tipo = $<s.type>1} puntero listaDeclaracion ';' {tipo = -1;}
-;
-prototipo: DATATYPE puntero ID '(' listaTipos ')' ';'
+declaracion: DATATYPE {tipo = $<s.type>1;} puntero listaDeclaracion ';'
 ;
 puntero: '*' puntero
         | /*vacio*/
@@ -161,14 +158,10 @@ puntero: '*' puntero
 listaDeclaracion:   var 
                   | listaDeclaracion ',' var
 ;
-listaTipos:  DATATYPE
-           | listaTipos ',' DATATYPE
-           | /*vacio*/
-;
 var: varSimple
     | varComp
 ;
-varSimple:  ID inicial
+varSimple: ID inicial
 ;
 varComp: ID '[' expresion ']'
         | varComp '[' expresion ']'
@@ -176,30 +169,24 @@ varComp: ID '[' expresion ']'
 inicial:  '=' constantes {if(tipo != $<s.type>2) {err = 1; printf("Tipo del constante no corresponde al tipo declarado\n");}}
         | /*vacio*/
 ;
-
 sentencia: sentCompuesta
           | sentExpresion 
           | sentSeleccion
           | sentIteracion
           | sentSalto
 ;
-
 sentCompuesta: '{' listaDeclaraciones listaSentencias '}'
 ;
 listaDeclaraciones: declaracion
-                   | listaDeclaraciones declaracion
                    | /*vacio*/
 ;
-
 listaSentencias: sentencia
                 | listaSentencias sentencia
                 | /*vacio*/
 ;
-
 sentExpresion: expresion ';'
               | /*vacio*/
 ;
-
 sentSeleccion: PRIF '(' expresion ')' sentencia
               | PRIF '(' expresion ')' sentencia PRELSE sentencia
               | PRSWITCH '(' expresion ')' sentencia
@@ -208,11 +195,22 @@ sentIteracion: PRWHILE '(' expresion ')' sentencia
               | PRDO sentencia PRWHILE '(' expresion ')' ';'
               | PRFOR '(' expresion ';' expresion ';' expresion ')' sentencia
 ;
-
 sentSalto: PRRETURN sentExpresion
 ;
-%%
+prototipo: DATATYPE ID '(' listaTipos ')'{printf("prototipo\n");} ';' {printf("prototipo\n");}
+          | DATATYPE puntero ID '(' listaTipos ')' ';' {printf("prototipo\n");}
+          | DATATYPE ID '(' parametros ')' sentencia
+;
+parametros: DATATYPE ID
+           | parametros ',' DATATYPE ID
+           | /*vacio*/
+;
+listaTipos:  DATATYPE
+           | listaTipos ',' DATATYPE
+           | /*vacio*/
+;
 
+%%
 
 void agregarALista(NodoLista** lista, char* p)
 {
@@ -266,8 +264,12 @@ void yyerror(char* err)
 
 main()
 {
-    //yyin = fopen("tpi.c", "r+");
-    yyparse();
+    yyin = fopen("tpi.c", "r+");
+    do
+    {
+        yyparse();
+    }while (!feof(yyin));
+    
     if(err != 0)
         printf("Error\n");
 }

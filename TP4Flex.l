@@ -53,10 +53,11 @@ OPINC     "++"|"--"
 IGNORAR   [ \t\n]+
 
 %%
-")"         {return ')';}
-"("         {return '(';}
+{IGNORAR}   ;
 "{"         {return '{';}
 "}"         {return '}';}
+")"         {return ')';}
+"("         {return '(';}
 ";"         {return ';';}
 "["         {return '[';}
 "]"         {return ']';}
@@ -82,7 +83,7 @@ IGNORAR   [ \t\n]+
 {PRFOR}     {return PRFOR;}
 {PRRETURN}  {return PRRETURN;}
 {PROP}      {printf("rp found\n");return PROP;}
-{ID}        {yylval.s.isReserved = 0; return ID;}
+{ID}        {yylval.s.isReserved = 0; strcpy(yylval.s.string, yytext); return ID;}
 {CTEHEX}    {yylval.n.type = INT; return CTEHEX;}
 {CTECAR}    {yylval.n.type = CH; return CTECAR;}
 {CTEDEC}    {yylval.n.type = INT; return CTEDEC;}
@@ -97,7 +98,6 @@ IGNORAR   [ \t\n]+
 {LESSEQ}    {return LESSEQ;}
 {OPINC}     {return OPINC;}
 {LITCADENA} {return LITCADENA;}
-"\n"        {return '\n';}
 %%
 
 int yywrap(void)
@@ -107,7 +107,7 @@ int yywrap(void)
 
 int dataTypeToInt(char* dataString)
 {
-    if(strcmp(dataString, "int") || strcmp(dataString, "short") || strcmp(dataString, "int"))
+    if(strcmp(dataString, "int") || strcmp(dataString, "short") || strcmp(dataString, "long"))
         return INT;
     else if(strcmp(dataString, "double") || strcmp(dataString, "float"))
         return FLT;
