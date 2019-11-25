@@ -9,7 +9,6 @@
 #define INT 1
 #define FLT 2
 #define CH 3
-#define STR 4
 
 int yywrap(void);
 int dataTypeToInt(char*);
