@@ -25,6 +25,7 @@
         struct NodoLista* sig;
     }NodoLista;
 
+
     void agregarAListaVar(NodoLista**, char*, int);
     void agregarAListaFunc(NodoLista**, char*, int, int[]);
     NodoLista* buscarNodo(NodoLista*, char*);
@@ -34,6 +35,7 @@
     void yyerror(char*);
 
     NodoLista *listaVar = NULL, *listaFunc = NULL, *aux;
+
     int err = 0, esLvalue = 0, tipo = -1, i = 0, l = 0, funciones[50][50] = {0};
 
 %}
@@ -83,6 +85,32 @@ line: '\n'
       | sentencia '\n'
       | sentencia
       | error
+;
+sentencia: sentCompuesta
+          | sentExpresion
+          | sentSeleccion
+          | sentIteracion
+          | sentSalto
+          | declaracionAlfa
+;
+sentCompuesta: '{' listaSentencias '}'
+;
+listaSentencias: /*vacio*/
+			| listaSentencias '\n'
+			| listaSentencias sentencia '\n'
+;
+sentExpresion: expresion ';'
+              | /*vacio*/
+;
+sentSeleccion: PRIF '(' expresion ')' sentencia
+              | PRIF '(' expresion ')' sentencia PRELSE sentencia
+              | PRSWITCH '(' expresion ')' sentencia
+;
+sentIteracion: PRWHILE '(' expresion ')' sentencia
+              | PRDO sentencia PRWHILE '(' expresion ')' ';'
+              | PRFOR '(' listaDeclaracion ';' expresion ';' expresion ')' sentencia
+;
+sentSalto: PRRETURN sentExpresion
 ;
 expresion: expAsignacion
           | /*vacio*/
@@ -155,32 +183,7 @@ constantes: CTECAR {$<s.type>$ = $<n.type>1;}
             | CTEHEX {$<s.type>$ = $<n.type>1;}
             | CTEREAL {$<s.type>$ = $<n.type>1;}
 ;
-sentencia: sentCompuesta
-          | sentExpresion 
-          | sentSeleccion
-          | sentIteracion
-          | sentSalto
-          | declaracionAlfa
-;
-sentCompuesta: '{' listaSentencias '}'
-;
-listaSentencias: /*vacio*/
-			| listaSentencias '\n'
-			| listaSentencias sentencia '\n'
-;
-sentExpresion: expresion ';'
-              | /*vacio*/
-;
-sentSeleccion: PRIF '(' expresion ')' sentencia
-              | PRIF '(' expresion ')' sentencia PRELSE sentencia
-              | PRSWITCH '(' expresion ')' sentencia
-;
-sentIteracion: PRWHILE '(' expresion ')' sentencia
-              | PRDO sentencia PRWHILE '(' expresion ')' ';'
-              | PRFOR '(' listaDeclaracion ';' expresion ';' expresion ')' sentencia
-;
-sentSalto: PRRETURN sentExpresion
-;
+
 
 declaracionAlfa: DATATYPE {tipo = $<s.type>1;} puntero declaracion
 ;
@@ -193,7 +196,7 @@ funcion: ID '(' parametros ')' protOdef {aux = buscarNodo(listaFunc, $<s.string>
 ;
 protOdef: sentencia
          | ';'
-;
+
 parametros: DATATYPE var {funciones[i][l] = $<s.type>1; l++;}
            | parametros ',' DATATYPE var {funciones[i][l] = $<s.type>3; l++;}
            | /*vacio*/ {funciones[i][l] = 0;}
@@ -201,7 +204,7 @@ parametros: DATATYPE var {funciones[i][l] = $<s.type>1; l++;}
 puntero: '*' puntero
         | /*vacio*/
 ;
-listaDeclaracion:   var 
+listaDeclaracion:   var
                   | listaDeclaracion ',' var
 ;
 var: ID arreglo inicial {aux = buscarNodo(listaVar, $<s.string>1); if(aux != NULL) printf("Error: Variable doblemente declarada\n"); else agregarAListaVar(&listaVar, $<s.string>1, $<s.type>1);}
@@ -227,7 +230,7 @@ void agregarAListaVar(NodoLista** lista, char* p, int t)
         nodo->info.palabra = (char*) malloc(strlen(p) + 1);
         nodo->info.tipo = intToDataType(t);
         strcpy(nodo->info.palabra, p);
-        
+
         while(aux1 != NULL && strcmp(aux1->info.palabra, p) < 0)
         {
             aux2 = aux1;
@@ -252,7 +255,7 @@ void agregarAListaFunc(NodoLista** lista, char* p, int t, int ts[])
     nodo->info.tipo = intToDataType(t);
 
     strcpy(nodo->info.palabra, p);
-    
+
     if(aux1 == *lista)
         *lista = nodo;
     else
@@ -277,18 +280,18 @@ void mostrarListaVar(NodoLista* listaVar)
 void mostrarListaFunc(NodoLista* listaFunc)
 {
     NodoLista* aux = listaFunc;
-    int k = 0, m = 0;
+    int k = i-1, m = 0;
     printf("Lista de funciones\n\n");
 
-    while(k < i)
+    while(k >=0)
     {
-        printf("Nombre: %s\nDevuelve: %s\n", aux->info.palabra, aux->info.tipo);
+        printf("\n Nombre: %s\nDevuelve: %s\n", aux->info.palabra, aux->info.tipo);
         while(funciones[k][m] != 0)
         {
             printf("Tipo parametro nro.%d: %s\n", m+1, intToDataType(funciones[k][m]));
             m++;
         }
-        k++;
+        k--;
         m = 0;
         aux = aux->sig;
     }
@@ -334,15 +337,15 @@ void yyerror(char* err)
 }
 
 main()
-{   
+{
 
     yyin = fopen("tpi.c", "r+");
     do
     {
         yyparse();
     }while (!feof(yyin));
-    
-    
+
+
     mostrarListaVar(listaVar);
     printf("\n");
     mostrarListaFunc(listaFunc);
