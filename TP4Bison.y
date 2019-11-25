@@ -62,22 +62,22 @@
 %token <n> ASIGNOP LOGICOR LOGICAND LOGICEQ LOGICNOTEQ GREATEQ LESSEQ OPINC LITCADENA PROP
 //----------Terminales de expresion
 //No terminales de asignacion
-%type <s> listaDeclaracion var varSimple varComp inicial puntero constantes listaTipos
+%type <s> listaDeclaracion var varSimple varComp inicial puntero constantes parametros
 //-----------No terminales de asignacion
 //Terminales de sentencias-----------
 %token <s> PRIF PRELSE PRSWITCH PRWHILE PRRETURN PRDO PRFOR
 //-----------Terminales de sentencias
 
-%start program
+%start input
 
 %%
-program: codigo
-        | program codigo
-        | /*vacio*/
+
+input: /*vacio*/
+      | input line
 ;
-codigo: prototipo
-       | declaracion
-       | error
+line: '\n'
+      | sentencia '\n'
+      | sentencia
 ;
 expresion: expAsignacion
           | /*vacio*/
@@ -150,30 +150,12 @@ constantes: CTECAR {$<s.type>$ = $<n.type>1;}
             | CTEHEX {$<s.type>$ = $<n.type>1;}
             | CTEREAL {$<s.type>$ = $<n.type>1;}
 ;
-declaracion: DATATYPE {tipo = $<s.type>1;} puntero listaDeclaracion ';'
-;
-puntero: '*' puntero
-        | /*vacio*/
-;
-listaDeclaracion:   var 
-                  | listaDeclaracion ',' var
-;
-var: varSimple
-    | varComp
-;
-varSimple: ID inicial
-;
-varComp: ID '[' expresion ']'
-        | varComp '[' expresion ']'
-;
-inicial:  '=' constantes {if(tipo != $<s.type>2) {err = 1; printf("Tipo del constante no corresponde al tipo declarado\n");}}
-        | /*vacio*/
-;
 sentencia: sentCompuesta
           | sentExpresion 
           | sentSeleccion
           | sentIteracion
           | sentSalto
+          | declaracion
 ;
 sentCompuesta: '{' listaDeclaraciones listaSentencias '}'
 ;
@@ -197,19 +179,42 @@ sentIteracion: PRWHILE '(' expresion ')' sentencia
 ;
 sentSalto: PRRETURN sentExpresion
 ;
-prototipo: DATATYPE ID '(' listaTipos ')'{printf("prototipo\n");} ';' {printf("prototipo\n");}
-          | DATATYPE puntero ID '(' listaTipos ')' ';' {printf("prototipo\n");}
-          | DATATYPE ID '(' parametros ')' sentencia
-;
-parametros: DATATYPE ID
-           | parametros ',' DATATYPE ID
-           | /*vacio*/
-;
-listaTipos:  DATATYPE
-           | listaTipos ',' DATATYPE
-           | /*vacio*/
+
+declaracion: variable ';'
+            | funcion
 ;
 
+variable: DATATYPE {printf("tipo: %d  ", $<s.type>1);tipo = $<s.type>1;} declaracionVariable
+;
+declaracionVariable: listaDeclaracion
+;
+
+funcion: DATATYPE ID '(' parametros ')' protOdef
+;
+protOdef: ';'
+         | sentencia
+;
+parametros:  DATATYPE var
+           | parametros ',' DATATYPE var
+           | /*vacio*/
+;
+puntero: '*' puntero
+        | /*vacio*/
+;
+listaDeclaracion:   var 
+                  | listaDeclaracion ',' var
+;
+var: varSimple
+    | varComp
+;
+varSimple: ID inicial
+          | ID
+;
+varComp: ID '[' expresion ']'
+        | varComp '[' expresion ']'
+;
+inicial:  '=' constantes {if(tipo != $<s.type>2) {err = 1; printf("Tipo del constante no corresponde al tipo declarado\n"); printf("%d", tipo);}}
+;
 %%
 
 void agregarALista(NodoLista** lista, char* p)
@@ -263,7 +268,7 @@ void yyerror(char* err)
 }
 
 main()
-{
+{   
     yyin = fopen("tpi.c", "r+");
     do
     {
@@ -272,4 +277,5 @@ main()
     
     if(err != 0)
         printf("Error\n");
+
 }

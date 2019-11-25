@@ -53,7 +53,7 @@ OPINC     "++"|"--"
 IGNORAR   [ \t\n]+
 
 %%
-{IGNORAR}   ;
+"\n"   {return '\n';}
 "{"         {return '{';}
 "}"         {return '}';}
 ")"         {return ')';}
@@ -107,11 +107,11 @@ int yywrap(void)
 
 int dataTypeToInt(char* dataString)
 {
-    if(strcmp(dataString, "int") || strcmp(dataString, "short") || strcmp(dataString, "long"))
+    if(!strcmp(dataString, "int") || !strcmp(dataString, "short") || !strcmp(dataString, "long"))
         return INT;
-    else if(strcmp(dataString, "double") || strcmp(dataString, "float"))
+    else if(!strcmp(dataString, "double") || !strcmp(dataString, "float"))
         return FLT;
-    else if(strcmp(dataString, "char"))
+    else if(!strcmp(dataString, "char"))
         return CH;
     else
         return VOID;
